@@ -49,7 +49,7 @@
                             <v-btn text color="red">
                                 Cancelar
                             </v-btn>
-                            <v-btn text color="blue" @click="mountpaypalbutton">
+                            <v-btn text color="blue" @click="dialog=true">
                                 Aceptar
                             </v-btn>
                         </v-card-actions>
@@ -85,65 +85,107 @@
                             <v-btn text color="red">
                                 Cancelar
                             </v-btn>
-                            <v-btn text color="blue">
+                            <v-btn text color="blue" @click="dialog=true">
                                 Aceptar
                             </v-btn>
                         </v-card-actions>
                     </v-card>
                 </div>
-
-                <div class="d-flex justify-content-evenly align-items-center w-100" id="paypal-button-container"></div>
             </v-container>
         </v-main>
+        <v-dialog v-model="dialog" max-width="600">
+            <v-card>
+                <v-card-title>Prueba de select con imagenes</v-card-title>
+                <v-card-text>
+                    <v-container class="fill-height" fluid>
+                        <v-row>
+                            <v-col>
+                                <p class="v-label">
+                                    Productos
+                                </p>
+                                <v-select
+                                    :items="pokemons"
+                                    :item-value="pokemons.id"
+                                    filled
+                                    rounded
+                                    dense
+                                >
+                                    <template v-slot:selection="{ item, index }">
+                                        <div class="d-flex">
+                                            <v-img height="90" width="90" :src="item.img">
+                                                <template v-slot:placeholder>
+                                                    <v-row
+                                                        class="fill-height ma-0"
+                                                        align="center"
+                                                        justify="center"
+                                                    >
+                                                        <v-progress-circular
+                                                            indeterminate
+                                                            color="grey lighten-5"
+                                                        ></v-progress-circular>
+                                                    </v-row>
+                                                </template>
+                                            </v-img>
+                                            <span class="align-self-center">{{ item.name }}</span>
+                                        </div>
+                                    </template>
+                                    <template v-slot:item="{ item }">
+                                        <div>
+                                            <v-img height="90" width="90" :src="item.img">
+                                                <template v-slot:placeholder>
+                                                    <v-row
+                                                        class="fill-height ma-0"
+                                                        align="center"
+                                                        justify="center"
+                                                    >
+                                                        <v-progress-circular
+                                                            indeterminate
+                                                            color="grey lighten-5"
+                                                        ></v-progress-circular>
+                                                    </v-row>
+                                                </template>
+                                            </v-img>
+                                        </div>
+                                        {{ item.name }}
+                                    </template>
+                                </v-select>
+                            </v-col>
+                        </v-row>
+                    </v-container>
+                </v-card-text>
+            </v-card>
+        </v-dialog>
     </v-app>
 </template>
 
 <script>
+import Vue from 'vue';
+
 export default {
     name: "ExampleComponent",
+    data: () => ({
+        dialog: false,
+        pokemons: []
+    }),
+    created() {
+        axios.get('https://pokeapi.co/api/v2/pokemon?limit=20&offset=0').then(({data}) => {
+            data.results.forEach(pokeInfo => {
+                axios.get(pokeInfo.url).then(pokeData => {
+                    pokeData = pokeData.data;
+                    this.pokemons.push({id: pokeData.id, name: pokeData.name, img: pokeData.sprites.front_default});
+                });
+            });
+        });
+    },
     methods: {
-        mountpaypalbutton() {
-            const swal = this.$swal;
-            paypal
-                .Buttons({
-                    style: {
-                        shape: "rect",
-                        color: "blue",
-                        layout: "vertical",
-                        label: "paypal",
-                        size: "medium"
-                    },
-                    createOrder: async function (data, actions) {
-                        // Set up the transaction
-                        return actions.order.create({
-                            purchase_units: [{
-                                amount: {
-                                    value: '0.01'
-                                }
-                            }]
-                        });
-                    },
-                    // eslint-disable-next-line no-unused-vars
-                    onApprove: async function (data, actions) {
-                        console.log(data);
-                        console.log(actions);
-                        return actions.order.capture().then(function (details) {
-                            console.log(details);
-                            swal.fire({
-                                icon: "success",
-                                title: "Congratulations",
-                                text: 'Transaction completed by ' + details.payer.name.given_name,
-                                confirmButtonText: "Complete",
-                                showLoaderOnConfirm: true,
-                                preConfirm: () => {
-                                },
-                                allowOutsideClick: false
-                            });
-                        });
-                    }
-                })
-                .render("#paypal-button-container");
-        }
+
     }
 }
 </script>
+
+
+<style>
+.v-select__slot .v-input__append-inner {
+    align-self: center !important;
+}
+</style>
